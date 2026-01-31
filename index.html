@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>이집트 신 퀴즈 마스터 🏛️</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Egyptian+Hieroglyphs&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #e6dfc8;
+            --card: #ffffff;
+            --gold-main: #d4af37;
+            --gold-light: #f1e5ac;
+            --gold-dark: #996515;
+            --blue-accent: #003366;
+            --text: #2c1e1a;
+        }
+
+        body { 
+            font-family: 'Nanum Gothic', sans-serif; 
+            background-color: var(--bg);
+            background-image: url('https://www.transparenttextures.com/patterns/natural-paper.png');
+            display: flex; flex-direction: column; align-items: center; 
+            margin: 0; padding: 20px; min-height: 100vh;
+        }
+
+        #game-container { 
+            background: var(--card); 
+            padding: 30px; 
+            border-radius: 25px; 
+            border: 8px double var(--gold-main);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.2), inset 0 0 15px var(--gold-light);
+            width: 100%; max-width: 480px; text-align: center;
+            box-sizing: border-box;
+        }
+
+        #word-display { 
+            margin: 20px 0; 
+            background-color: #ffffff; 
+            border-radius: 15px;
+            height: 320px;
+            display: flex; align-items: center; justify-content: center;
+            border: 3px solid var(--gold-main);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+            overflow: hidden;
+            font-family: 'Noto Sans Egyptian Hieroglyphs', sans-serif;
+        }
+
+        .text-glyph {
+            font-size: 200px;
+            line-height: 1;
+            color: var(--gold-dark);
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+        }
+
+        #word-display img {
+            max-width: 90%;
+            max-height: 90%;
+            object-fit: contain;
+        }
+
+        .options-grid { display: grid; gap: 12px; margin-top: 20px; }
+
+        button { 
+            padding: 18px; 
+            font-size: 19px; 
+            font-weight: bold;
+            cursor: pointer; 
+            border: 2px solid var(--gold-main);
+            border-radius: 15px; 
+            background: linear-gradient(to bottom, #ffffff, #fff9e6);
+            color: var(--gold-dark);
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 0 var(--gold-main);
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        button:hover:not(:disabled) { 
+            background: var(--gold-light);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 0 var(--gold-dark);
+        }
+
+        button:active:not(:disabled) {
+            transform: translateY(2px);
+            box-shadow: 0 1px 0 var(--gold-dark);
+        }
+
+        button:disabled { opacity: 0.6; cursor: default; }
+
+        .feedback { 
+            height: 50px; margin: 15px 0; 
+            font-weight: bold; font-size: 24px; 
+            display: flex; align-items: center; justify-content: center;
+        }
+
+        .correct { color: #1b5e20; background: #e8f5e9; border-radius: 10px; }
+        .incorrect { color: #b71c1c; background: #ffebee; border-radius: 10px; }
+
+        .stats { 
+            font-size: 14px; 
+            font-weight: bold;
+            color: var(--gold-dark); 
+            margin-top: 15px; 
+            padding-top: 10px;
+            border-top: 1px solid var(--gold-light);
+            display: flex; justify-content: space-around; 
+        }
+
+        #result-screen { display: none; }
+
+        .btn-action { 
+            width: 100%; padding: 20px; 
+            border-radius: 15px; border: none; 
+            font-weight: bold; font-size: 20px; 
+            color: white; margin-top: 15px; cursor: pointer;
+            text-shadow: 1px 1px 3px rgba(0,0,0,0.3);
+            background: var(--gold-main);
+        }
+        
+        #retry-btn { background: var(--blue-accent); }
+    </style>
+</head>
+<body>
+
+    <div id="game-container">
+        <div id="quiz-screen">
+            <div style="font-size: 14px; color: var(--gold-dark); font-weight: bold; margin-bottom: 5px; letter-spacing: 1px;">EGYPTIAN DEITIES</div>
+            <div id="word-display">...</div>
+            <div id="options" class="options-grid"></div>
+            <div id="feedback" class="feedback"></div>
+            <div class="stats">
+                <span>📝 문제 <span id="q-num">1</span>/10</span>
+                <span>⭐ 정답 <span id="s-num">0</span></span>
+            </div>
+        </div>
+
+        <div id="result-screen">
+            <h2 style="color: var(--gold-dark);">탐험 완료! 🏛️</h2>
+            <p id="result-stats" style="font-size: 22px; margin: 20px 0; font-weight: bold; color: var(--text);"></p>
+            <button onclick="startGame()" class="btn-action">✨ 새로운 탐험</button>
+            <button id="retry-btn" onclick="startRetryMode()" class="btn-action">틀린 문제 복습</button>
+        </div>
+    </div>
+
+<script>
+    const baseUrl = "https://raw.githubusercontent.com/jihye84/EgyptGod/main/";
+
+    const godData = [
+        {k: baseUrl + "ammit.png", m: "암무트 (Ammit)"},
+        {k: baseUrl + "ash.png", m: "아스 (Ash)"},
+        {k: baseUrl + "bes.png", m: "베스 (Bes)"},
+        {k: baseUrl + "khepri.png", m: "케프리 (Khepri)"},
+        {k: baseUrl + "khonsu.png", m: "콘수 (Khonsu)"},
+        {k: baseUrl + "nekhbet.png", m: "네크베트 (Nekhbet)"},
+        {k: baseUrl + "osiris.png", m: "오시리스 (Osiris)"},
+        {k: baseUrl + "taweret.png", m: "타와레트 (Taweret)"},
+        {k: baseUrl + "sobek.png", m: "소베크 (Sobek)"},
+        {k: baseUrl + "nut.png", m: "누트 (Nut)"},
+        {k: baseUrl + "wadjet.png", m: "와제트 (Wadjet)"},
+        {k: baseUrl + "sekhmet.png", m: "세크메트 (Sekhmet)"},
+
+        {k: "\u{1305A}", m: "라 (Ra)"}, {k: "\u{1305F}", m: "토트 (Thoth)"},
+        {k: "\u{13062}", m: "아누비스 (Anubis)"}, {k: "\u{13063}", m: "세트 (Seth)"},
+        {k: "\u{13143}", m: "호루스 (Horus)"}, {k: "\u{13060}", m: "크눔 (Khnum)"},
+        {k: "\u{13065}", m: "하토르 (Hathor)"}, {k: "\u{13066}", m: "마아트 (Maat)"}
+    ];
+
+    let currentQuizSet = [], currentIdx = 0, correctCount = 0, failedQuestions = [], isReviewMode = false;
+
+    function startGame() {
+        isReviewMode = false; failedQuestions = [];
+        currentQuizSet = [...godData].sort(() => Math.random() - 0.5).slice(0, 10);
+        resetState();
+    }
+
+    function startRetryMode() {
+        isReviewMode = true;
+        currentQuizSet = [...failedQuestions].sort(() => Math.random() - 0.5);
+        failedQuestions = []; resetState();
+    }
+
+    function resetState() {
+        currentIdx = 0; correctCount = 0;
+        document.getElementById('quiz-screen').style.display = 'block';
+        document.getElementById('result-screen').style.display = 'none';
+        renderQuestion();
+    }
+
+    function renderQuestion() {
+        if (currentIdx >= currentQuizSet.length) { showResult(); return; }
+        const q = currentQuizSet[currentIdx];
+        const displayArea = document.getElementById('word-display');
+
+        if (q.k.startsWith("http")) {
+            displayArea.classList.remove('text-glyph');
+            displayArea.innerHTML = `<img src="${q.k}" alt="${q.m}">`;
+        } else {
+            displayArea.classList.add('text-glyph');
+            displayArea.innerHTML = q.k;
+        }
+
+        document.getElementById('feedback').innerText = "";
+        document.getElementById('feedback').className = "feedback";
+        document.getElementById('q-num').innerText = currentIdx + 1;
+        document.getElementById('s-num').innerText = correctCount;
+
+        let options = [q.m];
+        let others = [...new Set(godData.filter(item => item.m !== q.m).map(item => item.m))];
+        others.sort(() => Math.random() - 0.5);
+        for(let i=0; i < 3; i++) options.push(others[i]);
+        options.sort(() => Math.random() - 0.5);
+
+        const optionsDiv = document.getElementById('options');
+        optionsDiv.innerHTML = "";
+        options.forEach(opt => {
+            const btn = document.createElement('button');
+            btn.innerText = opt;
+            btn.onclick = () => {
+                const btns = document.querySelectorAll('#options button');
+                btns.forEach(b => b.disabled = true);
+                if (opt === q.m) {
+                    document.getElementById('feedback').innerText = "⭕ 정답입니다!";
+                    document.getElementById('feedback').className = "feedback correct";
+                    correctCount++;
+                } else {
+                    document.getElementById('feedback').innerText = "❌ 정답: " + q.m;
+                    document.getElementById('feedback').className = "feedback incorrect";
+                    if(!failedQuestions.includes(q)) failedQuestions.push(q);
+                }
+                currentIdx++;
+                setTimeout(renderQuestion, 1200);
+            };
+            optionsDiv.appendChild(btn);
+        });
+    }
+
+    function showResult() {
+        document.getElementById('quiz-screen').style.display = 'none';
+        document.getElementById('result-screen').style.display = 'block';
+        document.getElementById('result-stats').innerText = `${currentQuizSet.length}문제 중 ${correctCount}개 정답!`;
+        document.getElementById('retry-btn').style.display = failedQuestions.length > 0 ? "block" : "none";
+    }
+
+    window.onload = startGame;
+</script>
+</body>
+</html>
